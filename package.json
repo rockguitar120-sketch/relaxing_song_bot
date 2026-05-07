@@ -1,0 +1,17 @@
+{
+  "name": "youtube-auto-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "get-token": "node src/getRefreshToken.js"
+  },
+  "dependencies": {
+    "googleapis": "^140.0.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "canvas": "^2.11.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0"
+  }
+}

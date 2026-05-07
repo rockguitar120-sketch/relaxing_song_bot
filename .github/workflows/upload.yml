@@ -1,0 +1,48 @@
+name: YouTube Auto Upload
+
+on:
+  schedule:
+    # Run at 11:00 AM Myanmar Time (05:30 UTC) = 8 hours before 7 PM ET
+    # Myanmar is UTC+6:30, so 05:30 UTC = 12:00 noon Myanmar
+    # This uploads early, then YouTube publishes at 7 PM ET automatically
+    - cron: '30 5 * * *'  # 11:00 AM Myanmar Time / 5:30 AM UTC daily
+  workflow_dispatch:  # Manual trigger for testing
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install FFmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run upload bot
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          VIDEO_COUNT: ${{ github.run_number }}
+        run: node index.js
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: '*.log'
+          retention-days: 7
