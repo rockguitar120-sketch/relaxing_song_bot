@@ -11,23 +11,26 @@ export async function generateAudio(outputPath) {
     const tempMusic = "temp/downloaded_music.mp3";
     fs.mkdirSync("temp", { recursive: true });
 
-    // ဒီ link တွေက Bot တွေ ဒေါင်းလို့ရတဲ့ Direct Links တွေပါ
+    // Wikimedia Commons က တိုက်ရိုက်ဒေါင်းလို့ရတဲ့ Stable Link များ
     const musicLibrary = {
-        relaxing: "https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/Xm7Ym8e5H9L1vPz4/Ketsa_-_08_-_Flowing.mp3",
-        sleeping: "https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/7X9a1v5B2m8Qk4Pz/Podington_Bear_-_Light_As_A_Feather.mp3",
-        meditation: "https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/9w5m2n8P1vQ7zL4X/Kai_Engel_-_04_-_Daylight.mp3"
+        relaxing: "https://upload.wikimedia.org/wikipedia/commons/2/23/Nocturne_op._9_no._2_in_E-flat_major.mp3",
+        sleeping: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Rain_on_a_tin_roof.mp3",
+        meditation: "https://upload.wikimedia.org/wikipedia/commons/b/be/Soft_piano_and_wind.mp3"
     };
 
     const targetUrl = musicLibrary[selectedCategory];
 
     try {
-        console.log(`📥 Downloading directly from Free Music Archive...`);
+        console.log(`📥 Downloading from Wikimedia Commons (Very Stable)...`);
         
         const response = await axios({
             url: targetUrl,
             method: 'GET',
             responseType: 'stream',
-            headers: { 'User-Agent': 'Mozilla/5.0' } // Browser အယောင်ဆောင်ပြီး ဒေါင်းမယ်
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'audio/mpeg'
+            }
         });
 
         const writer = fs.createWriteStream(tempMusic);
@@ -38,7 +41,7 @@ export async function generateAudio(outputPath) {
             writer.on('error', reject);
         });
 
-        console.log("✅ Music downloaded successfully!");
+        console.log("✅ Music downloaded from Commons!");
 
         // ၁၀ စက္ကန့်စာ ဖြတ်မယ်
         const ffmpegCmd = `ffmpeg -y -i "${tempMusic}" -t 10 -acodec copy "${outputPath}" 2>/dev/null`;
@@ -46,8 +49,7 @@ export async function generateAudio(outputPath) {
         
         return { path: outputPath, category: selectedCategory };
     } catch (error) {
-        console.error("❌ Audio Download Failed. Trying backup link...");
-        // Backup အနေနဲ့ တခြား link တစ်ခုကို ထပ်စမ်းမယ်
+        console.error("❌ Audio Download Failed:", error.message);
         throw error;
     }
 }
