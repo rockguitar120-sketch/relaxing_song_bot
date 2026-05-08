@@ -2,6 +2,3 @@
 credentials.json
 temp/
 node_modules/
-*.mp4
-*.mp3
-*.wav
