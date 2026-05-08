@@ -2,49 +2,48 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-// Generate gradient video frame with text using ffmpeg
+const VIDEO_CLIP_DURATION = 8; // seconds per short clip
+
 export async function generateVideoFrame(outputPath, category = "sleeping") {
   console.log("🎨 Generating video frame...");
-
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
   const themes = {
     sleeping: {
-      colors: ["0a0a2e", "1a1a4e", "0d0d3b"],
+      bg: "0a0a2e",
       text: "Deep Sleep Music",
-      emoji: "🌙",
-      textColor: "8888ff",
-      accentColor: "6666cc",
+      sub: "Relax  \u2022  Sleep  \u2022  Heal",
+      color: "8888ff",
     },
     meditation: {
-      colors: ["0a2e0a", "1a4e2e", "0d3b1a"],
+      bg: "0a2e0a",
       text: "Meditation Music",
-      emoji: "🧘",
-      textColor: "88ff88",
-      accentColor: "66cc88",
+      sub: "Breathe  \u2022  Focus  \u2022  Peace",
+      color: "88ff88",
     },
     relaxing: {
-      colors: ["1a0a2e", "2e1a4e", "1a0d3b"],
+      bg: "1a0a2e",
       text: "Relaxing Music",
-      emoji: "🌿",
-      textColor: "aa88ff",
-      accentColor: "8866cc",
+      sub: "Unwind  \u2022  Calm  \u2022  Restore",
+      color: "aa88ff",
     },
   };
 
-  const theme = themes[category] || themes.sleeping;
+  const t = themes[category] || themes.sleeping;
 
-  // Create gradient background with animated text using ffmpeg drawtext
   const videoCmd = `ffmpeg -y \
-    -f lavfi -i "color=c=#${theme.colors[0]}:size=1920x1080:rate=24" \
+    -f lavfi -i "color=c=#${t.bg}:size=1920x1080:rate=24" \
     -vf "\
-      drawbox=x=0:y=0:w=1920:h=1080:color=#${theme.colors[1]}@0.5:t=fill,\
-      drawtext=text='${theme.text}':fontsize=80:fontcolor=#${theme.textColor}:x=(w-text_w)/2:y=(h-text_h)/2-60:font=Sans:shadowcolor=black:shadowx=3:shadowy=3,\
-      drawtext=text='Relax • Sleep • Heal':fontsize=36:fontcolor=#${theme.textColor}@0.7:x=(w-text_w)/2:y=(h-text_h)/2+60:font=Sans,\
-      drawtext=text='${theme.emoji}':fontsize=120:x=(w-text_w)/2:y=(h-text_h)/2-200,\
-      drawtext=text='👍 LIKE  🔔 SUBSCRIBE':fontsize=22:fontcolor=white@0.9:x=w-text_w-30:y=30:font=Sans:box=1:boxcolor=#00000088:boxborderw=10\
+      drawtext=text='${t.text}':fontsize=80:fontcolor=#${t.color}:\
+        x=(w-text_w)/2:y=(h-text_h)/2-60:\
+        shadowcolor=black:shadowx=3:shadowy=3,\
+      drawtext=text='${t.sub}':fontsize=36:\
+        fontcolor=#${t.color}@0.7:x=(w-text_w)/2:y=(h-text_h)/2+60,\
+      drawtext=text='👍 LIKE   🔔 SUBSCRIBE':fontsize=22:\
+        fontcolor=white@0.9:x=w-text_w-30:y=30:\
+        box=1:boxcolor=#00000099:boxborderw=12\
     " \
-    -t 8 \
+    -t ${VIDEO_CLIP_DURATION} \
     -pix_fmt yuv420p \
     "${outputPath}" 2>/dev/null`;
 
@@ -53,25 +52,38 @@ export async function generateVideoFrame(outputPath, category = "sleeping") {
   return outputPath;
 }
 
-// Loop video to 1 hour+
 export async function createLongVideo(videoPath, audioPath, outputPath, targetDuration = 3660) {
   console.log(`🎬 Creating ${Math.floor(targetDuration / 60)}-minute final video...`);
 
-  const loopCount = Math.ceil(targetDuration / 8) + 10;
+  // ✅ FIX: Loop count based on actual clip duration (8 sec)
+  const loopCount = Math.ceil(targetDuration / VIDEO_CLIP_DURATION) + 20;
 
+  // ✅ FIX: Removed -shortest flag — use -t instead to avoid audio cutoff
   const ffmpegCmd = `ffmpeg -y \
     -stream_loop ${loopCount} -i "${videoPath}" \
     -i "${audioPath}" \
-    -map 0:v -map 1:a \
+    -map 0:v \
+    -map 1:a \
     -t ${targetDuration} \
     -c:v libx264 -preset ultrafast -crf 28 \
     -c:a aac -b:a 128k \
-    -shortest \
     -pix_fmt yuv420p \
     "${outputPath}" 2>/dev/null`;
 
-  console.log("⏳ This may take 5-15 minutes...");
-  execSync(ffmpegCmd, { stdio: "pipe", timeout: 1800000 }); // 30 min timeout
+  console.log("⏳ Processing... (5-15 minutes)");
+  execSync(ffmpegCmd, { stdio: "pipe", timeout: 1800000 });
   console.log(`✅ Final video created: ${outputPath}`);
+
+  // ✅ Verify both streams exist after creation
+  const checkCmd = `ffprobe -v quiet -show_streams "${outputPath}" 2>/dev/null | grep codec_type`;
+  const result = execSync(checkCmd).toString();
+  if (!result.includes("audio")) {
+    throw new Error("CRITICAL: Output video has no audio stream!");
+  }
+  if (!result.includes("video")) {
+    throw new Error("CRITICAL: Output video has no video stream!");
+  }
+  console.log("✅ Verified: Audio + Video streams both present");
+
   return outputPath;
 }

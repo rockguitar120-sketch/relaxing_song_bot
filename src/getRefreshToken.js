@@ -6,7 +6,7 @@ dotenv.config();
 const oauth2Client = new google.auth.OAuth2(
   process.env.YOUTUBE_CLIENT_ID,
   process.env.YOUTUBE_CLIENT_SECRET,
-  "urn:ietf:wg:oauth:2.0:oob"
+  "http://localhost"
 );
 
 const url = oauth2Client.generateAuthUrl({
