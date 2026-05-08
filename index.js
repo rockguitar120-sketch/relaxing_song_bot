@@ -14,19 +14,12 @@ const TEMP_DIR = "./temp";
 const VIDEO_DURATION = 3660; // 61 minutes
 
 async function getScheduledTime() {
-  // US Eastern 7 PM = UTC 23:00 (winter) or 00:00 next day (summer)
   const now = new Date();
   const scheduled = new Date();
-
-  // Set to today's 7 PM ET (UTC-5 in winter, UTC-4 in summer)
-  // GitHub Action runs ~8 hours early, so schedule for same day 7PM ET
   scheduled.setUTCHours(23, 0, 0, 0); // 7 PM EST
-
-  // If that time has already passed today, schedule for tomorrow
   if (scheduled <= now) {
     scheduled.setDate(scheduled.getDate() + 1);
   }
-
   return scheduled;
 }
 
@@ -34,7 +27,6 @@ async function main() {
   console.log("🚀 YouTube Auto-Upload Bot Starting...");
   console.log(`📅 ${new Date().toISOString()}`);
 
-  // Validate environment variables
   const required = ["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET",
     "YOUTUBE_REFRESH_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"];
   const missing = required.filter((k) => !process.env[k]);
@@ -42,53 +34,54 @@ async function main() {
     throw new Error(`Missing env vars: ${missing.join(", ")}`);
   }
 
-  // Track video count for metadata rotation
   const videoCount = parseInt(process.env.VIDEO_COUNT || "0");
-
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 
-  const metadata = generateMetadata(videoCount);
-  console.log(`\n📋 Category: ${metadata.videoCategory}`);
-  console.log(`📝 Title: ${metadata.title}`);
-
-  await sendNotification(`🎬 Starting video generation...\n📋 <b>${metadata.title}</b>`);
-
   try {
-    // Step 1: Generate short audio (8 sec base)
+    // --- STEP 1: GENERATE AUDIO & GET RANDOM CATEGORY ---
+    // audioGenerator ထဲမှာ random category ရွေးပြီး audio ဒေါင်းမယ်
     const shortAudioPath = path.join(TEMP_DIR, "short_audio.wav");
-    await generateAudio(shortAudioPath, 10);
+    const audioData = await generateAudio(shortAudioPath); 
+    const selectedCategory = audioData.category; // 'relaxing', 'sleeping' or 'meditation'
 
-    // Step 2: Loop audio to 61+ minutes
+    // --- STEP 2: GENERATE METADATA BASED ON CATEGORY ---
+    // ရလာတဲ့ category နဲ့ လိုက်ဖက်တဲ့ Title/Tags တွေကို generate လုပ်မယ်
+    const metadata = generateMetadata(videoCount, selectedCategory);
+    console.log(`\n📋 Category: ${selectedCategory}`);
+    console.log(`📝 Title: ${metadata.title}`);
+
+    await sendNotification(`🎬 Starting video generation...\n📋 <b>${metadata.title}</b>`);
+
+    // --- STEP 3: LOOP AUDIO ---
     const longAudioPath = path.join(TEMP_DIR, "long_audio.mp3");
     await loopAudio(shortAudioPath, longAudioPath, VIDEO_DURATION);
 
-    // Step 3: Generate video frame (8 sec)
+    // --- STEP 4: GENERATE VIDEO FRAME ---
     const shortVideoPath = path.join(TEMP_DIR, "short_video.mp4");
-    await generateVideoFrame(shortVideoPath, metadata.videoCategory);
+    await generateVideoFrame(shortVideoPath, selectedCategory);
 
-    // Step 4: Create full-length video
+    // --- STEP 5: CREATE FULL VIDEO ---
     const finalVideoPath = path.join(TEMP_DIR, "final_video.mp4");
     await createLongVideo(shortVideoPath, longAudioPath, finalVideoPath, VIDEO_DURATION);
 
-    // Step 5: Get scheduled publish time (7 PM US ET)
+    // --- STEP 6: UPLOAD & PLAYLIST ---
     const scheduledTime = await getScheduledTime();
-
-    // Step 6: Upload to YouTube
     const { videoId, videoUrl } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);
 
-    // Step 7: Add to playlist
     const auth = await getAuthClient();
     const playlistManager = new PlaylistManager(auth);
     const playlistId = await playlistManager.getOrCreatePlaylist(metadata.playlistName);
     await playlistManager.addToPlaylist(playlistId, videoId);
 
-    // Step 8: Send success notification
+    // --- STEP 7: NOTIFY ---
     await sendSuccess(videoId, metadata.title, scheduledTime, metadata.playlistName);
 
-    // Cleanup temp files to save space
-    fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+    // Cleanup
+    if (fs.existsSync(TEMP_DIR)) {
+      fs.rmSync(TEMP_DIR, { recursive: true, force: true });
+    }
 
-    console.log("\n🎉 All done! Video scheduled for 7 PM ET");
+    console.log(`\n🎉 All done! Video [${selectedCategory}] scheduled for 7 PM ET`);
 
   } catch (error) {
     console.error("❌ Error:", error.message);
