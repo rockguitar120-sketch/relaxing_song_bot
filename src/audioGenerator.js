@@ -9,17 +9,13 @@ export async function generateAudio(outputPath) {
     const files = fs.readdirSync(musicDir).filter(f => f.endsWith(".mp3"));
 
     if (files.length === 0) {
-        throw new Error("❌ Assets/music ထဲမှာ သီချင်းဖိုင်မရှိပါ။");
+        throw new Error("❌ No music files found in assets/music");
     }
 
-    const selectedFile = files[0];
+    const selectedFile = files[0]; // Queue အတိုင်း ပထမဆုံးဖိုင်ကို ယူမယ်
     const musicPath = path.join(musicDir, selectedFile);
     const trackTitle = path.parse(selectedFile).name;
 
-    console.log(`🎵 Using Full Track: ${selectedFile}`);
-    
-    // ဒီနေရာမှာ ၁၀ စက္ကန့်ပဲ ဖြတ်တာကို ဖြုတ်လိုက်ပြီး မူရင်းအတိုင်း copy ကူးပါမယ်
-    // ဒါမှ သီချင်းတစ်ပုဒ်လုံးကို loop ပတ်မှာပါ
     fs.copyFileSync(musicPath, outputPath);
     
     return { 
@@ -30,13 +26,11 @@ export async function generateAudio(outputPath) {
 }
 
 export async function loopAudio(inputPath, outputPath, targetDuration = 3660) {
-    console.log(`🔄 Looping full music track to 61 minutes...`);
+    console.log(`🔄 Looping music to 61 minutes...`);
     
-    // သီချင်းရဲ့ အရှည်ကို စက္ကန့်နဲ့ တွက်မယ်
     const durationCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputPath}"`;
     const trackDuration = parseFloat(execSync(durationCmd).toString());
     
-    // ၁ နာရီပြည့်ဖို့ ဘယ်နှစ်ခါ ပတ်ရမလဲ တွက်မယ်
     const loopCount = Math.ceil(targetDuration / trackDuration);
     const fadeOutStart = targetDuration - 10;
 

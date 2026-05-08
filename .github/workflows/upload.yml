@@ -1,37 +1,43 @@
-name: YouTube Auto Upload Twice Daily
+name: YouTube Auto Upload
+
 on:
   schedule:
-    # 03:00 UTC = 09:30 AM Myanmar Time
-    # 15:00 UTC = 09:30 PM Myanmar Time
-    - cron: '0 3,15 * * *'
+    # မြန်မာစံတော်ချိန် မနက် ၆:၃၀ နဲ့ ညနေ ၆:၃၀ (UTC 00:00, 12:00)
+    - cron: '0 0,12 * * *'
+  push:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
-  upload:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '18'
 
       - name: Install FFmpeg
-        run: sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Run upload bot
+      - name: Run Bot
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          VIDEO_COUNT: ${{ github.run_number }}
         run: node index.js
+
+      - name: Commit changes (Auto-delete sync)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/music/
+          git diff --staged --quiet || git commit -m "chore: sync deleted assets [skip ci]"
+          git push
