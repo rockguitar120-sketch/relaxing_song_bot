@@ -1,4 +1,5 @@
 .env
+credentials.json
 temp/
 node_modules/
 *.mp4
