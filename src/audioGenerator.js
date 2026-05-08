@@ -1,7 +1,9 @@
-import { exec } from "yt-dlp-exec";
+import ytDlp from "yt-dlp-exec";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+
+// ပြီးရင် အောက်က function ထဲမှာ exec နေရာကို ytDlp လို့ ပြောင်းသုံးပါမယ်
 
 export async function generateAudio(outputPath) {
     // ၁။ Relaxing, Sleeping, Meditation ထဲက ကျပန်းရွေးမယ်
@@ -19,7 +21,7 @@ export async function generateAudio(outputPath) {
 
     try {
         // ၂။ YouTube ကနေ အသံဖိုင်ကို ဒေါင်းမယ်
-        await exec(`ytsearch1:${query}`, {
+        await ytDlp(`ytsearch1:${query}`, {
             extractAudio: true,
             audioFormat: "mp3",
             output: tempMusic,
