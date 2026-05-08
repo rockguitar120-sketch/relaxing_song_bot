@@ -1,0 +1,30 @@
+name: Keepalive
+
+on:
+  schedule:
+    # တစ်ပတ် တစ်ခါ (တနင်္ဂနွေနေ့တိုင်း) Run မယ်
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update keepalive timestamp
+        run: |
+          # Assets folder မပျောက်သွားအောင် ကာကွယ်မယ်
+          mkdir -p assets/music
+          touch assets/music/.gitkeep
+          
+          echo "Last keepalive: $(date -u)" > .keepalive
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .keepalive assets/music/.gitkeep
+          git diff --staged --quiet || git commit -m "chore: keepalive [skip ci]"
+          git push
