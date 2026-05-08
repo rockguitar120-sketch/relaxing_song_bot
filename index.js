@@ -13,8 +13,7 @@ dotenv.config();
 const TEMP_DIR = "./temp";
 const VIDEO_DURATION = 3660; // 61 minutes
 
-// --- Telegram Listener ကို စတင်နှိုးခြင်း ---
-// ဒါမှ GitHub Action run နေတုန်း Telegram ကနေ လှမ်းပို့ရင် လက်ခံနိုင်မှာပါ
+// --- ၁။ Telegram Listener ကို စတင်နှိုးခြင်း ---
 setupTelegramListener();
 
 async function getScheduledTime() {
@@ -39,35 +38,34 @@ async function main() {
   }
 
   const videoCount = parseInt(process.env.VIDEO_COUNT || "0");
-  fs.mkdirSync(TEMP_DIR, { recursive: true });
+  if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+
+  let currentAudioData = null; // Cleanup အတွက် အပြင်မှာ ကြေညာထားမယ်
 
   try {
     // --- STEP 1: GENERATE AUDIO FROM ASSETS ---
-    // assets/music ထဲက ဖိုင်ကိုယူမယ်၊ ဖိုင်နာမည်ကိုပါ သိမ်းခဲ့မယ်
     const shortAudioPath = path.join(TEMP_DIR, "short_audio.wav");
-    const audioData = await generateAudio(shortAudioPath); 
+    currentAudioData = await generateAudio(shortAudioPath); 
     
     // --- STEP 2: METADATA PREPARATION ---
-    // audioData.trackTitle (ဖိုင်နာမည်) ကို Title မှာ ထည့်သုံးမယ်
     const metadata = generateMetadata(videoCount);
-    metadata.title = `${audioData.trackTitle} | Deep Relaxing Piano & Strings`;
+    // ဖိုင်နာမည်ကို Title အဖြစ် သုံးခြင်း
+    metadata.title = `${currentAudioData.trackTitle} | Deep Relaxing Piano & Strings`;
     
-    console.log(`\n📋 Processing Track: ${audioData.trackTitle}`);
-    console.log(`📝 YouTube Title: ${metadata.title}`);
-
+    console.log(`\n📋 Processing Track: ${currentAudioData.trackTitle}`);
     await sendNotification(`🎬 Starting video generation...\n🎵 <b>${metadata.title}</b>`);
 
-    // --- STEP 3: LOOP AUDIO ---
+    // --- STEP 3: LOOP AUDIO (သီချင်းတစ်ပုဒ်လုံးကို Loop ပတ်ခြင်း) ---
     const longAudioPath = path.join(TEMP_DIR, "long_audio.mp3");
-    await loopAudio(audioData.path, longAudioPath, VIDEO_DURATION);
+    await loopAudio(currentAudioData.path, longAudioPath, VIDEO_DURATION);
 
     // --- STEP 4: GENERATE VIDEO FRAME ---
-    // metadata ထဲက category ကိုယူသုံးမယ်
-    await generateVideoFrame(path.join(TEMP_DIR, "short_video.mp4"), metadata.videoCategory);
+    const shortVideoPath = path.join(TEMP_DIR, "short_video.mp4");
+    await generateVideoFrame(shortVideoPath, metadata.videoCategory);
 
     // --- STEP 5: CREATE FULL VIDEO ---
     const finalVideoPath = path.join(TEMP_DIR, "final_video.mp4");
-    await createLongVideo(path.join(TEMP_DIR, "short_video.mp4"), longAudioPath, finalVideoPath, VIDEO_DURATION);
+    await createLongVideo(shortVideoPath, longAudioPath, finalVideoPath, VIDEO_DURATION);
 
     // --- STEP 6: UPLOAD & PLAYLIST ---
     const scheduledTime = await getScheduledTime();
@@ -78,25 +76,36 @@ async function main() {
     const playlistId = await playlistManager.getOrCreatePlaylist(metadata.playlistName);
     await playlistManager.addToPlaylist(playlistId, videoId);
 
-    // --- STEP 7: CLEANUP ORIGINAL FILE & NOTIFY ---
-    // တင်ပြီးသွားပြီဖြစ်လို့ assets ထဲက မူရင်း MP3 ကို ဖျက်မယ်
-    if (fs.existsSync(audioData.originalFile)) {
-        fs.unlinkSync(audioData.originalFile);
-        console.log(`🗑️ Deleted source file: ${audioData.originalFile}`);
+    // --- STEP 7: CLEANUP & AUTO-DELETE ---
+    // ဗီဒီယိုတင်လို့ အောင်မြင်မှ Assets ထဲက မူရင်းဖိုင်ကို ဖျက်မယ်
+    const sourceFile = path.resolve(currentAudioData.originalFile);
+    if (fs.existsSync(sourceFile)) {
+        fs.unlinkSync(sourceFile);
+        console.log(`🗑️ Successfully deleted source: ${sourceFile}`);
     }
 
     await sendSuccess(videoId, metadata.title, scheduledTime, metadata.playlistName);
 
+    // Temporary ဖိုင်များ ဖျက်ခြင်း
     if (fs.existsSync(TEMP_DIR)) {
       fs.rmSync(TEMP_DIR, { recursive: true, force: true });
     }
 
-    console.log(`\n🎉 Process Complete! File deleted and Video scheduled.`);
+    console.log(`\n🎉 Process Complete! Bot will exit in 5 seconds...`);
+    
+    // 🔥 GitHub Actions ရပ်သွားအောင် ပရိုဂရမ်ကို အတင်းပိတ်ချခြင်း
+    setTimeout(() => {
+        process.exit(0);
+    }, 5000);
 
   } catch (error) {
     console.error("❌ Error:", error.message);
     await sendNotification(`❌ <b>Upload Failed!</b>\n\nError: ${error.message}`, true);
-    process.exit(1);
+    
+    // Error တက်ရင်လည်း ပိတ်မယ်
+    setTimeout(() => {
+        process.exit(1);
+    }, 5000);
   }
 }
 
