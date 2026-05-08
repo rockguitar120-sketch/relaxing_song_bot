@@ -1,52 +1,58 @@
+import { exec } from "yt-dlp-exec";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-export async function generateAudio(outputPath, durationSeconds = 10) {
-  console.log("🎵 Generating ambient audio...");
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+export async function generateAudio(outputPath) {
+    // ၁။ Relaxing, Sleeping, Meditation ထဲက ကျပန်းရွေးမယ်
+    const categories = ["relaxing", "sleeping", "meditation"];
+    const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
+    
+    console.log(`🔍 Randomly selected category: ${selectedCategory}`);
+    console.log(`🔍 Searching for ${selectedCategory} music...`);
 
-  // ✅ FIX: NO afade:out on short clip - fade-out causes silence every loop!
-  const ffmpegCmd = `ffmpeg -y \
-    -f lavfi -i "sine=frequency=174:sample_rate=44100" \
-    -f lavfi -i "sine=frequency=285:sample_rate=44100" \
-    -f lavfi -i "sine=frequency=396:sample_rate=44100" \
-    -f lavfi -i "sine=frequency=432:sample_rate=44100" \
-    -f lavfi -i "sine=frequency=528:sample_rate=44100" \
-    -filter_complex "\
-      [0]volume=0.15[s1];\
-      [1]volume=0.12[s2];\
-      [2]volume=0.10[s3];\
-      [3]volume=0.08[s4];\
-      [4]volume=0.06[s5];\
-      [s1][s2][s3][s4][s5]amix=inputs=5:duration=longest[aout]" \
-    -map "[aout]" \
-    -t ${durationSeconds} \
-    -ar 44100 -ac 2 \
-    "${outputPath}" 2>/dev/null`;
+    const tempMusic = "temp/downloaded_music.mp3";
+    fs.mkdirSync("temp", { recursive: true });
 
-  execSync(ffmpegCmd, { stdio: "pipe" });
-  console.log(`✅ Audio generated: ${outputPath}`);
-  return outputPath;
+    // No Copyright Music ကိုပဲ ရှာမယ်
+    const query = `${selectedCategory} music no copyright instrumental relaxing`;
+
+    try {
+        // ၂။ YouTube ကနေ အသံဖိုင်ကို ဒေါင်းမယ်
+        await exec(`ytsearch1:${query}`, {
+            extractAudio: true,
+            audioFormat: "mp3",
+            output: tempMusic,
+            noPlaylist: true,
+        });
+
+        console.log("📥 Music downloaded successfully!");
+
+        // ၃။ သီချင်းကို ၁၀ စက္ကန့်စာ အတိုလေး ဖြတ်ယူမယ် (Loop ပတ်ဖို့အတွက်)
+        const ffmpegCmd = `ffmpeg -y -i "${tempMusic}" -t 10 -acodec copy "${outputPath}" 2>/dev/null`;
+        execSync(ffmpegCmd);
+        
+        return { path: outputPath, category: selectedCategory };
+    } catch (error) {
+        console.error("❌ Audio Download Failed:", error);
+        throw error;
+    }
 }
 
 export async function loopAudio(inputPath, outputPath, targetDuration = 3660) {
-  console.log(`🔄 Looping audio to ${Math.floor(targetDuration / 60)} minutes...`);
+    console.log(`🔄 Looping to ${Math.floor(targetDuration / 60)} minutes...`);
+    
+    // ၁၀ စက္ကန့်ဖိုင်ကို ၁ နာရီကျော်အောင် loop ပတ်မယ့် အရေအတွက်
+    const loopCount = Math.ceil(targetDuration / 10) + 10;
+    const fadeOutStart = targetDuration - 10;
 
-  // ✅ FIX: Correct loop count based on actual clip duration
-  const clipDuration = 10; // short audio is 10 seconds
-  const loopCount = Math.ceil(targetDuration / clipDuration) + 10;
+    const ffmpegCmd = `ffmpeg -y -stream_loop ${loopCount} -i "${inputPath}" \
+        -t ${targetDuration} \
+        -af "afade=t=in:st=0:d=5,afade=t=out:st=${fadeOutStart}:d=10" \
+        -acodec libmp3lame -ab 128k \
+        "${outputPath}" 2>/dev/null`;
 
-  // ✅ FIX: Fade-in/out applied HERE on the final long audio (not on short clip)
-  const fadeOutStart = targetDuration - 10;
-  const ffmpegCmd = `ffmpeg -y \
-    -stream_loop ${loopCount} -i "${inputPath}" \
-    -t ${targetDuration} \
-    -af "afade=t=in:st=0:d=8,afade=t=out:st=${fadeOutStart}:d=10" \
-    -acodec libmp3lame -ab 128k \
-    "${outputPath}" 2>/dev/null`;
-
-  execSync(ffmpegCmd, { stdio: "pipe" });
-  console.log(`✅ Audio looped: ${outputPath}`);
-  return outputPath;
+    execSync(ffmpegCmd);
+    console.log(`✅ Final 61-minute audio prepared`);
+    return outputPath;
 }
