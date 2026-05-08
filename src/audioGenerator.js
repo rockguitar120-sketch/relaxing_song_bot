@@ -1,50 +1,58 @@
-import ytDlp from "yt-dlp-exec";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-
-// ပြီးရင် အောက်က function ထဲမှာ exec နေရာကို ytDlp လို့ ပြောင်းသုံးပါမယ်
+import axios from "axios";
 
 export async function generateAudio(outputPath) {
-    // ၁။ Relaxing, Sleeping, Meditation ထဲက ကျပန်းရွေးမယ်
     const categories = ["relaxing", "sleeping", "meditation"];
     const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
     
-    console.log(`🔍 Randomly selected category: ${selectedCategory}`);
-    console.log(`🔍 Searching for ${selectedCategory} music...`);
-
+    console.log(`🔍 Category: ${selectedCategory}`);
     const tempMusic = "temp/downloaded_music.mp3";
     fs.mkdirSync("temp", { recursive: true });
 
-    // No Copyright Music ကိုပဲ ရှာမယ်
-    const query = `${selectedCategory} music no copyright instrumental relaxing`;
+    // Public Domain Music URLs (ဥပမာအနေနဲ့ အေးချမ်းတဲ့ သီချင်းအချို့)
+    const musicLibrary = {
+        relaxing: "https://www.chosic.com/wp-content/uploads/2021/07/The-Garden-Of-The-Mind.mp3",
+        sleeping: "https://www.chosic.com/wp-content/uploads/2020/06/Rain-on-Windows-Relaxing-Rain.mp3",
+        meditation: "https://www.chosic.com/wp-content/uploads/2021/04/Deep-Meditation.mp3"
+    };
+
+    const targetUrl = musicLibrary[selectedCategory];
 
     try {
-        // ၂။ YouTube ကနေ အသံဖိုင်ကို ဒေါင်းမယ်
-        await ytDlp(`ytsearch1:${query}`, {
-            extractAudio: true,
-            audioFormat: "mp3",
-            output: tempMusic,
-            noPlaylist: true,
+        console.log(`📥 Downloading free music from archive...`);
+        
+        // သီချင်းကို URL ကနေ တိုက်ရိုက်ဒေါင်းမယ်
+        const response = await axios({
+            url: targetUrl,
+            method: 'GET',
+            responseType: 'stream'
         });
 
-        console.log("📥 Music downloaded successfully!");
+        const writer = fs.createWriteStream(tempMusic);
+        response.data.pipe(writer);
 
-        // ၃။ သီချင်းကို ၁၀ စက္ကန့်စာ အတိုလေး ဖြတ်ယူမယ် (Loop ပတ်ဖို့အတွက်)
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        console.log("✅ Music downloaded from archive!");
+
+        // ၁၀ စက္ကန့်စာ ဖြတ်မယ်
         const ffmpegCmd = `ffmpeg -y -i "${tempMusic}" -t 10 -acodec copy "${outputPath}" 2>/dev/null`;
         execSync(ffmpegCmd);
         
         return { path: outputPath, category: selectedCategory };
     } catch (error) {
-        console.error("❌ Audio Download Failed:", error);
+        console.error("❌ Audio Download Failed:", error.message);
         throw error;
     }
 }
 
 export async function loopAudio(inputPath, outputPath, targetDuration = 3660) {
-    console.log(`🔄 Looping to ${Math.floor(targetDuration / 60)} minutes...`);
-    
-    // ၁၀ စက္ကန့်ဖိုင်ကို ၁ နာရီကျော်အောင် loop ပတ်မယ့် အရေအတွက်
+    console.log(`🔄 Looping music...`);
     const loopCount = Math.ceil(targetDuration / 10) + 10;
     const fadeOutStart = targetDuration - 10;
 
@@ -55,6 +63,5 @@ export async function loopAudio(inputPath, outputPath, targetDuration = 3660) {
         "${outputPath}" 2>/dev/null`;
 
     execSync(ffmpegCmd);
-    console.log(`✅ Final 61-minute audio prepared`);
     return outputPath;
 }
