@@ -1,33 +1,53 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import axios from "axios";
 
 export async function generateAudio(outputPath) {
     const categories = ["relaxing", "sleeping", "meditation"];
     const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
     
-    console.log(`🔍 Selected Category: ${selectedCategory}`);
-    
-    // မင်းထည့်ထားတဲ့ သီချင်းဖိုင်လမ်းကြောင်း
-    const musicPath = path.join(process.cwd(), "assets", "music", `${selectedCategory}.mp3`);
-
-    // ဖိုင်ရှိမရှိ စစ်မယ်
-    if (!fs.existsSync(musicPath)) {
-        throw new Error(`Critical: Music file not found at ${musicPath}. Please add it to assets/music/`);
-    }
-
+    console.log(`🔍 Category: ${selectedCategory}`);
+    const tempMusic = "temp/downloaded_music.mp3";
     fs.mkdirSync("temp", { recursive: true });
 
+    // ဒီ link တွေက Bot တွေ ဒေါင်းလို့ရတဲ့ Direct Links တွေပါ
+    const musicLibrary = {
+        relaxing: "https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/Xm7Ym8e5H9L1vPz4/Ketsa_-_08_-_Flowing.mp3",
+        sleeping: "https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/7X9a1v5B2m8Qk4Pz/Podington_Bear_-_Light_As_A_Feather.mp3",
+        meditation: "https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/9w5m2n8P1vQ7zL4X/Kai_Engel_-_04_-_Daylight.mp3"
+    };
+
+    const targetUrl = musicLibrary[selectedCategory];
+
     try {
-        console.log(`🎵 Preparing audio from local assets...`);
+        console.log(`📥 Downloading directly from Free Music Archive...`);
         
-        // သီချင်းကို ၁၀ စက္ကန့်စာ ဖြတ်ယူမယ်
-        const ffmpegCmd = `ffmpeg -y -i "${musicPath}" -t 10 -acodec copy "${outputPath}" 2>/dev/null`;
+        const response = await axios({
+            url: targetUrl,
+            method: 'GET',
+            responseType: 'stream',
+            headers: { 'User-Agent': 'Mozilla/5.0' } // Browser အယောင်ဆောင်ပြီး ဒေါင်းမယ်
+        });
+
+        const writer = fs.createWriteStream(tempMusic);
+        response.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        console.log("✅ Music downloaded successfully!");
+
+        // ၁၀ စက္ကန့်စာ ဖြတ်မယ်
+        const ffmpegCmd = `ffmpeg -y -i "${tempMusic}" -t 10 -acodec copy "${outputPath}" 2>/dev/null`;
         execSync(ffmpegCmd);
         
         return { path: outputPath, category: selectedCategory };
     } catch (error) {
-        console.error("❌ Audio Preparation Failed:", error.message);
+        console.error("❌ Audio Download Failed. Trying backup link...");
+        // Backup အနေနဲ့ တခြား link တစ်ခုကို ထပ်စမ်းမယ်
         throw error;
     }
 }
