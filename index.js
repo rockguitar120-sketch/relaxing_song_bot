@@ -6,12 +6,16 @@ import { generateVideoFrame, createLongVideo } from "./src/videoGenerator.js";
 import { uploadToYouTube, getAuthClient } from "./src/youtubeUploader.js";
 import { generateMetadata } from "./src/metadataGenerator.js";
 import { PlaylistManager } from "./src/playlistManager.js";
-import { sendSuccess, sendNotification } from "./src/telegramBot.js";
+import { sendSuccess, sendNotification, setupTelegramListener } from "./src/telegramBot.js";
 
 dotenv.config();
 
 const TEMP_DIR = "./temp";
 const VIDEO_DURATION = 3660; // 61 minutes
+
+// --- Telegram Listener ကို စတင်နှိုးခြင်း ---
+// ဒါမှ GitHub Action run နေတုန်း Telegram ကနေ လှမ်းပို့ရင် လက်ခံနိုင်မှာပါ
+setupTelegramListener();
 
 async function getScheduledTime() {
   const now = new Date();
@@ -38,54 +42,60 @@ async function main() {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 
   try {
-    // --- STEP 1: GENERATE AUDIO & GET RANDOM CATEGORY ---
-    // audioGenerator ထဲမှာ random category ရွေးပြီး audio ဒေါင်းမယ်
+    // --- STEP 1: GENERATE AUDIO FROM ASSETS ---
+    // assets/music ထဲက ဖိုင်ကိုယူမယ်၊ ဖိုင်နာမည်ကိုပါ သိမ်းခဲ့မယ်
     const shortAudioPath = path.join(TEMP_DIR, "short_audio.wav");
     const audioData = await generateAudio(shortAudioPath); 
-    const selectedCategory = audioData.category; // 'relaxing', 'sleeping' or 'meditation'
+    
+    // --- STEP 2: METADATA PREPARATION ---
+    // audioData.trackTitle (ဖိုင်နာမည်) ကို Title မှာ ထည့်သုံးမယ်
+    const metadata = generateMetadata(videoCount);
+    metadata.title = `${audioData.trackTitle} | Deep Relaxing Piano & Strings`;
+    
+    console.log(`\n📋 Processing Track: ${audioData.trackTitle}`);
+    console.log(`📝 YouTube Title: ${metadata.title}`);
 
-    // --- STEP 2: GENERATE METADATA BASED ON CATEGORY ---
-    // ရလာတဲ့ category နဲ့ လိုက်ဖက်တဲ့ Title/Tags တွေကို generate လုပ်မယ်
-    const metadata = generateMetadata(videoCount, selectedCategory);
-    console.log(`\n📋 Category: ${selectedCategory}`);
-    console.log(`📝 Title: ${metadata.title}`);
-
-    await sendNotification(`🎬 Starting video generation...\n📋 <b>${metadata.title}</b>`);
+    await sendNotification(`🎬 Starting video generation...\n🎵 <b>${metadata.title}</b>`);
 
     // --- STEP 3: LOOP AUDIO ---
     const longAudioPath = path.join(TEMP_DIR, "long_audio.mp3");
-    await loopAudio(shortAudioPath, longAudioPath, VIDEO_DURATION);
+    await loopAudio(audioData.path, longAudioPath, VIDEO_DURATION);
 
     // --- STEP 4: GENERATE VIDEO FRAME ---
-    const shortVideoPath = path.join(TEMP_DIR, "short_video.mp4");
-    await generateVideoFrame(shortVideoPath, selectedCategory);
+    // metadata ထဲက category ကိုယူသုံးမယ်
+    await generateVideoFrame(path.join(TEMP_DIR, "short_video.mp4"), metadata.videoCategory);
 
     // --- STEP 5: CREATE FULL VIDEO ---
     const finalVideoPath = path.join(TEMP_DIR, "final_video.mp4");
-    await createLongVideo(shortVideoPath, longAudioPath, finalVideoPath, VIDEO_DURATION);
+    await createLongVideo(path.join(TEMP_DIR, "short_video.mp4"), longAudioPath, finalVideoPath, VIDEO_DURATION);
 
     // --- STEP 6: UPLOAD & PLAYLIST ---
     const scheduledTime = await getScheduledTime();
-    const { videoId, videoUrl } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);
+    const { videoId } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);
 
     const auth = await getAuthClient();
     const playlistManager = new PlaylistManager(auth);
     const playlistId = await playlistManager.getOrCreatePlaylist(metadata.playlistName);
     await playlistManager.addToPlaylist(playlistId, videoId);
 
-    // --- STEP 7: NOTIFY ---
+    // --- STEP 7: CLEANUP ORIGINAL FILE & NOTIFY ---
+    // တင်ပြီးသွားပြီဖြစ်လို့ assets ထဲက မူရင်း MP3 ကို ဖျက်မယ်
+    if (fs.existsSync(audioData.originalFile)) {
+        fs.unlinkSync(audioData.originalFile);
+        console.log(`🗑️ Deleted source file: ${audioData.originalFile}`);
+    }
+
     await sendSuccess(videoId, metadata.title, scheduledTime, metadata.playlistName);
 
-    // Cleanup
     if (fs.existsSync(TEMP_DIR)) {
       fs.rmSync(TEMP_DIR, { recursive: true, force: true });
     }
 
-    console.log(`\n🎉 All done! Video [${selectedCategory}] scheduled for 7 PM ET`);
+    console.log(`\n🎉 Process Complete! File deleted and Video scheduled.`);
 
   } catch (error) {
     console.error("❌ Error:", error.message);
-    await sendNotification(`❌ <b>Upload Failed!</b>\n\nError: ${error.message}\n\nStack: ${error.stack?.slice(0, 500)}`, true);
+    await sendNotification(`❌ <b>Upload Failed!</b>\n\nError: ${error.message}`, true);
     process.exit(1);
   }
 }
