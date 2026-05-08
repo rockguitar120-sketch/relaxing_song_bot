@@ -1,55 +1,38 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import axios from "axios";
 
 export async function generateAudio(outputPath) {
     const categories = ["relaxing", "sleeping", "meditation"];
     const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
     
     console.log(`🔍 Category: ${selectedCategory}`);
-    const tempMusic = "temp/downloaded_music.mp3";
     fs.mkdirSync("temp", { recursive: true });
 
-    // Wikimedia Commons က တိုက်ရိုက်ဒေါင်းလို့ရတဲ့ Stable Link များ
-    const musicLibrary = {
-        relaxing: "https://upload.wikimedia.org/wikipedia/commons/2/23/Nocturne_op._9_no._2_in_E-flat_major.mp3",
-        sleeping: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Rain_on_a_tin_roof.mp3",
-        meditation: "https://upload.wikimedia.org/wikipedia/commons/b/be/Soft_piano_and_wind.mp3"
-    };
-
-    const targetUrl = musicLibrary[selectedCategory];
-
     try {
-        console.log(`📥 Downloading from Wikimedia Commons (Very Stable)...`);
+        console.log(`🎵 Synthesizing original ambient audio (No Download Needed)...`);
         
-        const response = await axios({
-            url: targetUrl,
-            method: 'GET',
-            responseType: 'stream',
-            headers: { 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'audio/mpeg'
-            }
-        });
+        // category အလိုက် မတူညီတဲ့ အသံလှိုင်းတွေကို ပေါင်းစပ်ပြီး တီးခိုင်းမယ်
+        let audioFilter = "";
+        if (selectedCategory === "sleeping") {
+            // မိုးရွာသံ (Brown Noise)
+            audioFilter = "anoisesrc=d=10:c=brown:amp=0.1, lowpass=f=500";
+        } else if (selectedCategory === "meditation") {
+            // ပင်လယ်လှိုင်းသံ (Pink Noise)
+            audioFilter = "anoisesrc=d=10:c=pink:amp=0.05, tremolo=f=0.1:d=0.5";
+        } else {
+            // Relaxing (White Noise + Soft Sine)
+            audioFilter = "anoisesrc=d=10:c=white:amp=0.02, lowpass=f=1000";
+        }
 
-        const writer = fs.createWriteStream(tempMusic);
-        response.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
-        console.log("✅ Music downloaded from Commons!");
-
-        // ၁၀ စက္ကန့်စာ ဖြတ်မယ်
-        const ffmpegCmd = `ffmpeg -y -i "${tempMusic}" -t 10 -acodec copy "${outputPath}" 2>/dev/null`;
+        const ffmpegCmd = `ffmpeg -y -f lavfi -i "${audioFilter}" -ar 44100 -ac 2 "${outputPath}" 2>/dev/null`;
+        
         execSync(ffmpegCmd);
+        console.log("✅ Original audio synthesized locally!");
         
         return { path: outputPath, category: selectedCategory };
     } catch (error) {
-        console.error("❌ Audio Download Failed:", error.message);
+        console.error("❌ Audio Synthesis Failed:", error.message);
         throw error;
     }
 }
