@@ -46,6 +46,14 @@ export async function uploadToYouTube(videoPath, metadata, scheduledTime) {
       mimeType: "video/mp4",
       body: fs.createReadStream(videoPath),
     },
+  }, {
+    // Resumable upload settings
+    onUploadProgress: evt => {
+      const progress = (evt.bytesRead / videoSize) * 100;
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(`📤 Upload Progress: ${progress.toFixed(2)}%`);
+    },
   });
 
   const videoId = response.data.id;

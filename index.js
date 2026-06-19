@@ -44,17 +44,16 @@ async function main() {
     const shortAudioPath = path.join(TEMP_DIR, "short_audio.wav");
     currentAudioData = await generateAudio(shortAudioPath); 
     
-    const metadata = generateMetadata(videoCount);
-    metadata.title = `${currentAudioData.trackTitle} | Deep Relaxing Piano & Strings`;
+    const metadata = await generateMetadata(videoCount, currentAudioData.trackTitle);
     
     await sendNotification(`🎬 Starting video generation...\n🎵 <b>${metadata.title}</b>`);
 
     const longAudioPath = path.join(TEMP_DIR, "long_audio.mp3");
     await loopAudio(currentAudioData.path, longAudioPath, VIDEO_DURATION);
 
-    await generateVideoFrame(path.join(TEMP_DIR, "short_video.mp4"), metadata.videoCategory);
+    const videoFramePath = await generateVideoFrame(path.join(TEMP_DIR, "short_video.mp4"), metadata.videoCategory);
     const finalVideoPath = path.join(TEMP_DIR, "final_video.mp4");
-    await createLongVideo(path.join(TEMP_DIR, "short_video.mp4"), longAudioPath, finalVideoPath, VIDEO_DURATION);
+    await createLongVideo(videoFramePath, longAudioPath, finalVideoPath, VIDEO_DURATION);
 
     const scheduledTime = await getScheduledTime();
     const { videoId } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);

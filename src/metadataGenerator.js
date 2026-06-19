@@ -1,3 +1,29 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+
+async function generateMetadataWithAI(category, trackTitle) {
+  if (!genAI) {
+    console.warn("Gemini API key not set. Using default metadata templates.");
+    return null;
+  }
+
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+  const prompt = `Generate a YouTube video title, description, and 10 relevant tags for a ${category} music video. The music track title is "${trackTitle}". The video is 61 minutes long. Focus on SEO, relaxation, and attracting viewers looking for ${category} music. The description should be engaging and include relevant emojis and hashtags. Provide the output in a JSON format like this: {"title": "Your Title", "description": "Your Description", "tags": ["tag1", "tag2"]}`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error generating metadata with AI:", error.message);
+    return null;
+  }
+}
+
 // Auto-generate unique titles, descriptions, tags per video
 
 const categories = {
@@ -60,25 +86,44 @@ const categories = {
   },
 };
 
-export function generateMetadata(videoCount = 0) {
+export async function generateMetadata(videoCount = 0, trackTitle = "Relaxing Music") {
   const categoryKeys = Object.keys(categories);
   const categoryKey = categoryKeys[videoCount % categoryKeys.length];
   const category = categories[categoryKey];
 
-  const titleIndex = Math.floor(Math.random() * category.titles.length);
-  const descIndex = Math.floor(Math.random() * category.descriptions.length);
-  const tagIndex = Math.floor(Math.random() * category.tags.length);
+  const aiMetadata = await generateMetadataWithAI(categoryKey, trackTitle);
 
-  // Add unique timestamp to avoid duplicates
+  if (aiMetadata) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    return {
+      title: aiMetadata.title,
+      description: aiMetadata.description + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
+      tags: aiMetadata.tags,
+      categoryId: "10", // Music category on YouTube
+      playlistName: category.playlistName,
+      videoCategory: categoryKey,
+    };
+  }
+
+  // Fallback to existing logic if AI generation fails or API key is missing
+  const fallbackCategoryKeys = Object.keys(categories);
+  const fallbackCategoryKey = fallbackCategoryKeys[videoCount % fallbackCategoryKeys.length];
+  const fallbackCategory = categories[fallbackCategoryKey];
+
+  const titleIndex = Math.floor(Math.random() * fallbackCategory.titles.length);
+  const descIndex = Math.floor(Math.random() * fallbackCategory.descriptions.length);
+  const tagIndex = Math.floor(Math.random() * fallbackCategory.tags.length);
+
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   return {
-    title: category.titles[titleIndex],
-    description: category.descriptions[descIndex] + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
-    tags: category.tags[tagIndex],
+    title: fallbackCategory.titles[titleIndex],
+    description: fallbackCategory.descriptions[descIndex] + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
+    tags: fallbackCategory.tags[tagIndex],
     categoryId: "10", // Music category on YouTube
-    playlistName: category.playlistName,
-    videoCategory: categoryKey,
+    playlistName: fallbackCategory.playlistName,
+    videoCategory: fallbackCategoryKey,
   };
 }
