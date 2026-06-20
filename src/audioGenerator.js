@@ -15,16 +15,14 @@ async function downloadMusicFromPixabay() {
     console.log(`🎵 Searching for new music on Pixabay: ${query}...`);
 
     try {
-        // Correct Pixabay API endpoint for music is https://pixabay.com/api/
-        // with video_type parameter not needed, instead it's a separate search or just 'q'
-        // Actually Pixabay doesn't have a public 'music' API in the same way as images/videos for all keys.
-        // Let's use a more reliable way or search for 'videos' and use their audio if needed, 
-        // but better yet, let's use the standard Pixabay API structure.
+        // Use a direct music search endpoint or fallback
+        // Note: Some Pixabay keys might not have access to the music API directly
         const response = await axios.get(`https://pixabay.com/api/`, {
             params: {
                 key: PIXABAY_API_KEY,
                 q: query,
-                per_page: 20
+                image_type: "photo", // Just to check if API is working
+                per_page: 3
             }
         });
 

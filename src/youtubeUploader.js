@@ -48,11 +48,18 @@ export async function uploadToYouTube(videoPath, metadata, scheduledTime) {
     },
   }, {
     // Resumable upload settings
-    onUploadProgress: evt => {
+      onUploadProgress: evt => {
       const progress = (evt.bytesRead / videoSize) * 100;
-      process.stdout.clearLine(0);
-      process.stdout.cursorTo(0);
-      process.stdout.write(`📤 Upload Progress: ${progress.toFixed(2)}%`);
+      if (process.stdout.isTTY) {
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+        process.stdout.write(`📤 Upload Progress: ${progress.toFixed(2)}%`);
+      } else {
+        // Fallback for non-TTY environments like GitHub Actions
+        if (Math.round(progress) % 10 === 0) {
+           console.log(`📤 Upload Progress: ${progress.toFixed(2)}%`);
+        }
+      }
     },
   });
 
