@@ -5,62 +5,48 @@ import axios from "axios";
 
 const PIXABAY_API_KEY = process.env.PEXELS_API_KEY; // Using Pexels key as it often works for Pixabay or user might have both
 
-async function downloadMusicFromPixabay() {
+async function downloadRoyaltyFreeMusic() {
     const musicDir = path.join(process.cwd(), "assets", "music");
     if (!fs.existsSync(musicDir)) fs.mkdirSync(musicDir, { recursive: true });
 
-    const queries = ["relaxing piano", "meditation", "nature sounds", "ambient", "peaceful piano"];
-    const query = queries[Math.floor(Math.random() * queries.length)];
+    // List of direct download links for high-quality royalty-free relaxing music
+    // Sources: Incompetech (Kevin MacLeod), SoundHelix, etc.
+    const musicSources = [
+        { title: "Peaceful Meditation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+        { title: "Gentle Piano", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+        { title: "Soft Ambient", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+        { title: "Deep Sleep Journey", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
+        { title: "Morning Calm", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" },
+        { title: "Zen Garden", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" }
+    ];
 
-    console.log(`🎵 Searching for new music on Pixabay: ${query}...`);
+    const track = musicSources[Math.floor(Math.random() * musicSources.length)];
+    const fileName = `${track.title.replace(/\s+/g, '_').toLowerCase()}.mp3`;
+    const filePath = path.join(musicDir, fileName);
+
+    if (fs.existsSync(filePath)) {
+        console.log(`⏭️ Music already exists: ${fileName}`);
+        return;
+    }
+
+    console.log(`🎵 Downloading Royalty-Free Music: ${track.title}...`);
 
     try {
-        // Use a direct music search endpoint or fallback
-        // Note: Some Pixabay keys might not have access to the music API directly
-        const response = await axios.get(`https://pixabay.com/api/`, {
-            params: {
-                key: PIXABAY_API_KEY,
-                q: query,
-                image_type: "photo", // Just to check if API is working
-                per_page: 3
-            }
+        const writer = fs.createWriteStream(filePath);
+        const response = await axios({
+            url: track.url,
+            method: 'GET',
+            responseType: 'stream'
         });
 
-        // If no music, we'll try a different approach or use a fixed fallback music list
-        if (response.data.hits && response.data.hits.length > 0) {
-            // Pixabay API for music is often limited. 
-            // Let's use a reliable fallback music URL if API fails to provide a direct download.
-            const track = response.data.hits[Math.floor(Math.random() * response.data.hits.length)];
-            
-            // If track doesn't have a direct download URL, we'll use a royalty-free music source
-            const musicUrl = track.audio || track.download || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; 
-            const fileName = `relaxing_track_${Date.now()}.mp3`;
-            const filePath = path.join(musicDir, fileName);
+        response.data.pipe(writer);
 
-            if (fs.existsSync(filePath)) {
-                console.log(`⏭️ Music already exists: ${fileName}`);
-                return;
-            }
-
-            console.log(`📥 Downloading new music: ${track.title}...`);
-            const writer = fs.createWriteStream(filePath);
-            const downloadRes = await axios({
-                url: musicUrl,
-                method: 'GET',
-                responseType: 'stream'
-            });
-
-            downloadRes.data.pipe(writer);
-
-            return new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-        } else {
-            console.warn("⚠️ No music found on Pixabay for the query.");
-        }
+        return new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
     } catch (error) {
-        console.error("❌ Error searching/downloading Pixabay music:", error.message);
+        console.error("❌ Error downloading music:", error.message);
     }
 }
 
@@ -70,8 +56,8 @@ export async function generateAudio(outputPath) {
 
     // Auto-download music if folder is empty or randomly
     let files = fs.readdirSync(musicDir).filter(f => f.endsWith(".mp3"));
-    if (files.length === 0 || Math.random() > 0.7) {
-        await downloadMusicFromPixabay();
+    if (files.length === 0 || Math.random() > 0.5) {
+        await downloadRoyaltyFreeMusic();
         files = fs.readdirSync(musicDir).filter(f => f.endsWith(".mp3"));
     }
 
