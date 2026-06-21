@@ -58,10 +58,15 @@ async function main() {
     const scheduledTime = await getScheduledTime();
     const { videoId } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);
 
-    const auth = await getAuthClient();
-    const playlistManager = new PlaylistManager(auth);
-    const playlistId = await playlistManager.getOrCreatePlaylist(metadata.playlistName);
-    await playlistManager.addToPlaylist(playlistId, videoId);
+    try {
+      const auth = await getAuthClient();
+      const playlistManager = new PlaylistManager(auth);
+      const playlistId = await playlistManager.getOrCreatePlaylist(metadata.playlistName);
+      await playlistManager.addToPlaylist(playlistId, videoId);
+    } catch (playlistError) {
+      console.warn("⚠️ Could not add to playlist (Insufficient permissions):", playlistError.message);
+      // We don't fail the whole process just because playlist adding failed
+    }
 
     // --- CLEANUP & AUTO-DELETE SECTION ---
     console.log("🛠️ Attempting to delete source file...");
