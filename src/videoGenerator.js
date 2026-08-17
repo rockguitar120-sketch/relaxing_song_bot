@@ -115,6 +115,39 @@ export async function generateVideoFrame(outputPath, category = "sleeping") {
   return outputPath;
 }
 
+export async function generateThumbnail(videoPath, outputPath, title, category = "relaxing") {
+  console.log("🖼️ Generating professional thumbnail...");
+  
+  const themes = {
+    sleeping: { color: "8888ff", sub: "DEEP SLEEP" },
+    meditation: { color: "88ff88", sub: "MEDITATION" },
+    relaxing: { color: "aa88ff", sub: "RELAXATION" },
+  };
+  const t = themes[category] || themes.relaxing;
+
+  // Extract a high-quality frame from the middle of the video
+  const extractFrameCmd = `ffmpeg -y -ss 00:00:05 -i "${videoPath}" -vframes 1 "${outputPath}" 2>/dev/null`;
+  execSync(extractFrameCmd);
+
+  // Apply professional text overlays and styling for the thumbnail
+  const styledThumbnailPath = outputPath.replace(".jpg", "_styled.jpg");
+  const drawText = `
+    drawtext=text='${title.split('|')[0].trim()}':fontcolor=white:fontsize=90:x=(w-text_w)/2:y=(h-text_h)/2-40:shadowcolor=black:shadowx=5:shadowy=5,
+    drawtext=text='${t.sub}':fontcolor=#${t.color}:fontsize=45:x=(w-text_w)/2:y=(h-text_h)/2+80:shadowcolor=black:shadowx=3:shadowy=3,
+    drawtext=text='60 MINS':fontcolor=yellow:fontsize=35:x=w-text_w-40:y=h-text_h-40:box=1:boxcolor=black@0.6:boxborderw=10
+  `.replace(/\s+/g, " ");
+
+  const styleCmd = `ffmpeg -y -i "${outputPath}" -vf "${drawText}" "${styledThumbnailPath}" 2>/dev/null`;
+  execSync(styleCmd);
+
+  if (fs.existsSync(styledThumbnailPath)) {
+    fs.renameSync(styledThumbnailPath, outputPath);
+  }
+
+  console.log(`✅ Professional thumbnail created: ${outputPath}`);
+  return outputPath;
+}
+
 export async function createLongVideo(videoPath, audioPath, outputPath, targetDuration = 3660) {
   console.log(`🎬 Creating ${Math.floor(targetDuration / 60)}-minute final video...`);
 

@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import { generateAudio, loopAudio } from "./src/audioGenerator.js";
-import { generateVideoFrame, createLongVideo } from "./src/videoGenerator.js";
-import { uploadToYouTube, getAuthClient } from "./src/youtubeUploader.js";
+import { generateVideoFrame, createLongVideo, generateThumbnail } from "./src/videoGenerator.js";
+import { uploadToYouTube, getAuthClient, setCustomThumbnail } from "./src/youtubeUploader.js";
 import { generateMetadata } from "./src/metadataGenerator.js";
 import { PlaylistManager } from "./src/playlistManager.js";
 import { sendSuccess, sendNotification, setupTelegramListener } from "./src/telegramBot.js";
@@ -58,6 +58,14 @@ async function main() {
 
     const scheduledTime = await getScheduledTime();
     const { videoId } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);
+
+    try {
+      const thumbnailPath = path.join(TEMP_DIR, "thumbnail.jpg");
+      await generateThumbnail(videoFramePath, thumbnailPath, metadata.title, metadata.videoCategory);
+      await setCustomThumbnail(videoId, thumbnailPath);
+    } catch (thumbError) {
+      console.warn("⚠️ Thumbnail generation/upload warning:", thumbError.message);
+    }
 
     let playlistAdded = true;
     try {

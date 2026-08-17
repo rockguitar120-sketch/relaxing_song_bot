@@ -71,3 +71,22 @@ export async function uploadToYouTube(videoPath, metadata, scheduledTime) {
 
   return { videoId, videoUrl: `https://youtube.com/watch?v=${videoId}` };
 }
+
+export async function setCustomThumbnail(videoId, thumbnailPath) {
+  console.log(`🖼️ Setting custom thumbnail for video: ${videoId}...`);
+  const auth = await getAuthClient();
+  const youtube = google.youtube({ version: "v3", auth });
+
+  try {
+    await youtube.thumbnails.set({
+      videoId: videoId,
+      media: {
+        mimeType: "image/jpeg",
+        body: fs.createReadStream(thumbnailPath),
+      },
+    });
+    console.log("✅ Custom thumbnail set successfully!");
+  } catch (error) {
+    console.warn("⚠️ Could not set custom thumbnail (Insufficient permissions or other error):", error.message);
+  }
+}
