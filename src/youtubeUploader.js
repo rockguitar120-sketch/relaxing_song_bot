@@ -40,6 +40,7 @@ export async function uploadToYouTube(videoPath, metadata, scheduledTime) {
         publishAt: scheduledTime.toISOString(),
         selfDeclaredMadeForKids: false,
         madeForKids: false,
+        containsSyntheticMedia: true, // Disclose AI usage for monetization safety
       },
     },
     media: {

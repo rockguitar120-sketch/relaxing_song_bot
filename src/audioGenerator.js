@@ -12,12 +12,13 @@ async function downloadRoyaltyFreeMusic() {
     // List of direct download links for high-quality royalty-free relaxing music
     // Sources: Incompetech (Kevin MacLeod), SoundHelix, etc.
     const musicSources = [
-        { title: "Peaceful Meditation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-        { title: "Gentle Piano", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-        { title: "Soft Ambient", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-        { title: "Deep Sleep Journey", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
-        { title: "Morning Calm", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" },
-        { title: "Zen Garden", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" }
+        { title: "Deep Zen Meditation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+        { title: "Ethereal Relaxation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+        { title: "Peaceful Healing Sounds", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+        { title: "Celestial Sleep Aid", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
+        { title: "Tranquil Morning Mist", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" },
+        { title: "Mindful Zen Garden", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" },
+        { title: "Soft Spiritual Journey", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3" }
     ];
 
     const track = musicSources[Math.floor(Math.random() * musicSources.length)];

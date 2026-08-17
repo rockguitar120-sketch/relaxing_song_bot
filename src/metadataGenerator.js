@@ -94,12 +94,14 @@ export async function generateMetadata(videoCount = 0, trackTitle = "Relaxing Mu
 
   const aiMetadata = await generateMetadataWithAI(categoryKey, trackTitle);
 
+  const aiNotice = `\n\n🤖 Note: This video incorporates AI-assisted tools for content structuring, metadata optimization, and visual composition to provide a seamless relaxation experience.`;
+
   if (aiMetadata) {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     return {
       title: aiMetadata.title,
-      description: aiMetadata.description + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
+      description: aiMetadata.description + aiNotice + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
       tags: aiMetadata.tags,
       categoryId: "10", // Music category on YouTube
       playlistName: category.playlistName,
@@ -121,7 +123,7 @@ export async function generateMetadata(videoCount = 0, trackTitle = "Relaxing Mu
 
   return {
     title: fallbackCategory.titles[titleIndex],
-    description: fallbackCategory.descriptions[descIndex] + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
+    description: fallbackCategory.descriptions[descIndex] + aiNotice + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
     tags: fallbackCategory.tags[tagIndex],
     categoryId: "10", // Music category on YouTube
     playlistName: fallbackCategory.playlistName,
