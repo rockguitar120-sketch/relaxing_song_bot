@@ -51,14 +51,20 @@ export async function sendNotification(message, isError = false) {
   }
 }
 
-export async function sendSuccess(videoId, title, scheduledTime, playlistName) {
+export async function sendSuccess(details) {
+  const { videoId, title, scheduledTime, playlistName, duration, tags, aiDisclosed } = details;
   const message = `
-✅ <b>Video Uploaded Successfully!</b>
+✅ <b>YouTube Upload Successful!</b>
+
 🎵 <b>Title:</b> ${title}
 🔗 <b>URL:</b> https://youtube.com/watch?v=${videoId}
 📋 <b>Playlist:</b> ${playlistName}
-⏰ <b>Publish:</b> ${scheduledTime.toLocaleString()}
-<i>Video will go live automatically and source file is deleted!</i>
+⏰ <b>Scheduled for:</b> ${scheduledTime.toLocaleString()}
+⏱️ <b>Process Time:</b> ${duration} minutes
+🏷️ <b>Tags:</b> ${tags.slice(0, 5).join(", ")}...
+🤖 <b>AI Disclosure:</b> ${aiDisclosed ? "Enabled ✅" : "Disabled ❌"}
+
+<i>Your video is now in the YouTube queue and will be published automatically.</i>
 `;
   await sendNotification(message);
 }

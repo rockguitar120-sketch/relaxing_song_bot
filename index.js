@@ -34,6 +34,7 @@ async function getScheduledTime() {
 }
 
 async function main() {
+  const startTime = Date.now();
   console.log("🚀 YouTube Auto-Upload Bot Starting...");
   const videoCount = parseInt(process.env.VIDEO_COUNT || "0");
   if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
@@ -46,7 +47,7 @@ async function main() {
     
     const metadata = await generateMetadata(videoCount, currentAudioData.trackTitle);
     
-    await sendNotification(`🎬 Starting video generation...\n🎵 <b>${metadata.title}</b>`);
+    await sendNotification(`🎬 <b>Process Started</b>\n🎵 Title: ${metadata.title}\n📂 Music: ${currentAudioData.trackTitle}`);
 
     const longAudioPath = path.join(TEMP_DIR, "long_audio.mp3");
     await loopAudio(currentAudioData.path, longAudioPath, VIDEO_DURATION);
@@ -58,6 +59,7 @@ async function main() {
     const scheduledTime = await getScheduledTime();
     const { videoId } = await uploadToYouTube(finalVideoPath, metadata, scheduledTime);
 
+    let playlistAdded = true;
     try {
       const auth = await getAuthClient();
       const playlistManager = new PlaylistManager(auth);
@@ -65,14 +67,25 @@ async function main() {
       await playlistManager.addToPlaylist(playlistId, videoId);
     } catch (playlistError) {
       console.warn("⚠️ Could not add to playlist (Insufficient permissions):", playlistError.message);
-      // We don't fail the whole process just because playlist adding failed
+      playlistAdded = false;
     }
 
     // --- CLEANUP & AUTO-DELETE SECTION ---
     console.log("🛠️ Attempting to delete source file...");
     const sourceFile = path.resolve(currentAudioData.originalFile);
+    
+    const endTime = Date.now();
+    const durationMinutes = ((endTime - startTime) / 60000).toFixed(1);
 
-    await sendSuccess(videoId, metadata.title, scheduledTime, metadata.playlistName);
+    await sendSuccess({
+      videoId,
+      title: metadata.title,
+      scheduledTime,
+      playlistName: playlistAdded ? metadata.playlistName : "N/A (No Permission)",
+      duration: durationMinutes,
+      tags: metadata.tags,
+      aiDisclosed: true
+    });
 
     if (fs.existsSync(TEMP_DIR)) fs.rmSync(TEMP_DIR, { recursive: true, force: true });
 
