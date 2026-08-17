@@ -9,8 +9,8 @@ async function generateMetadataWithAI(category, trackTitle) {
     return null;
   }
 
-  // Correct model name for Gemini 1.5 Flash or Pro
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Use a more stable model identifier
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
   const prompt = `Generate a YouTube video title, description, and 10 relevant tags for a ${category} music video. The music track title is "${trackTitle}". The video is 61 minutes long. Focus on SEO, relaxation, and attracting viewers looking for ${category} music. The description should be engaging and include relevant emojis and hashtags. IMPORTANT: Provide ONLY the raw JSON output without any markdown formatting or backticks. Example: {"title": "Your Title", "description": "Your Description", "tags": ["tag1", "tag2"]}`;
 
