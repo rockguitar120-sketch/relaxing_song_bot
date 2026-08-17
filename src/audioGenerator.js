@@ -12,13 +12,13 @@ async function downloadRoyaltyFreeMusic() {
     // List of direct download links for high-quality royalty-free relaxing music
     // Sources: Incompetech (Kevin MacLeod), SoundHelix, etc.
     const musicSources = [
-        { title: "Deep Zen Meditation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-        { title: "Ethereal Relaxation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-        { title: "Peaceful Healing Sounds", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-        { title: "Celestial Sleep Aid", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
-        { title: "Tranquil Morning Mist", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" },
-        { title: "Mindful Zen Garden", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" },
-        { title: "Soft Spiritual Journey", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3" }
+        { title: "Deep Zen Meditation", url: "https://audionautix.com/Music/Namaste.mp3" },
+        { title: "Celestial Sleep Aid", url: "https://audionautix.com/Music/NavajoNight.mp3" },
+        { title: "Ethereal Relaxation", url: "https://audionautix.com/Music/Ohm.mp3" },
+        { title: "Peaceful Healing Sounds", url: "https://audionautix.com/Music/RunningWaters.mp3" },
+        { title: "Zen Garden Piano", url: "https://archive.org/download/ZenMeditationMusicSoothingMusicRelaxingMusicMeditationZenBinauralBeats3236/3%20HOURS%20The%20Best%20Relaxing%20Piano%20Flute%20Music%20Ever.mp3" },
+        { title: "Spiritual Guitar Journey", url: "https://archive.org/download/ZenMeditationMusicSoothingMusicRelaxingMusicMeditationZenBinauralBeats3236/3%20Hour%20Relaxing%20Guitar%20Music%20Meditation%20Music%2C%20Instrumental%20Music%2C%20Calming%20Music%2C%20Soft%20Music%2C%20%E2%98%AF2432.mp3" },
+        { title: "Deep Sleep Sanctuary", url: "https://archive.org/download/ZenMeditationMusicSoothingMusicRelaxingMusicMeditationZenBinauralBeats3236/30%20Minute%20Relaxing%20Sleep%20Music%2C%20Calm%20Music%2C%20Soft%20Music%2C%20Instrumental%20Music%2C%20Sleep%20Meditation%2C%20%E2%98%AF3241B.mp3" }
     ];
 
     const track = musicSources[Math.floor(Math.random() * musicSources.length)];
