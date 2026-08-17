@@ -51,9 +51,9 @@ export async function generateVideoFrame(outputPath, category = "sleeping") {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
   const pexelsQueryMap = {
-    sleeping: "nature relaxing sleep",
-    meditation: "meditation zen calm",
-    relaxing: "nature peaceful relaxing",
+    sleeping: "cinematic dark night nature forest moon aesthetic",
+    meditation: "aesthetic zen meditation water ripples mountain mist",
+    relaxing: "cinematic aesthetic nature landscape slow motion calm",
   };
   const pexelsQuery = pexelsQueryMap[category] || pexelsQueryMap.relaxing;
 

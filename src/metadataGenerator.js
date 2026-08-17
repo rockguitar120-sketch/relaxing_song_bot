@@ -12,7 +12,9 @@ async function generateMetadataWithAI(category, trackTitle) {
   // Use a more stable model identifier
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-  const prompt = `Generate a YouTube video title, description, and 10 relevant tags for a ${category} music video. The music track title is "${trackTitle}". The video is 61 minutes long. Focus on SEO, relaxation, and attracting viewers looking for ${category} music. The description should be engaging and include relevant emojis and hashtags. IMPORTANT: Provide ONLY the raw JSON output without any markdown formatting or backticks. Example: {"title": "Your Title", "description": "Your Description", "tags": ["tag1", "tag2"]}`;
+  const prompt = `Act as an expert YouTube growth hacker and SEO specialist for top relaxation and meditation channels. Generate a highly engaging, click-worthy YouTube video title, an immersive description with timestamps (0:00 Intro, 15:00 Deep Relaxation, 30:00 Peace & Calm, 45:00 Restful State), and 12 high-performing SEO tags for a 61-minute ${category} music video. Track title: "${trackTitle}". 
+Tone: Professional, calming, natural, and human-like (avoid robotic AI phrasing). 
+IMPORTANT: Provide ONLY the raw JSON output without any markdown formatting, backticks, or extra text. Format: {"title": "Your Title", "description": "Your Description", "tags": ["tag1", "tag2"]}`;
 
   try {
     const result = await model.generateContent(prompt);
@@ -99,9 +101,10 @@ export async function generateMetadata(videoCount = 0, trackTitle = "Relaxing Mu
   if (aiMetadata) {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const cta = `\n\n✨ If you enjoyed this journey, please LIKE, COMMENT, and SUBSCRIBE for daily peaceful music! ✨\n🔔 Turn on notifications to never miss a moment of calm.`;
     return {
       title: aiMetadata.title,
-      description: aiMetadata.description + aiNotice + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
+      description: aiMetadata.description + cta + aiNotice + `\n\n📅 Published: ${dateStr}\n© Relaxing Sounds Channel`,
       tags: aiMetadata.tags,
       categoryId: "10", // Music category on YouTube
       playlistName: category.playlistName,
