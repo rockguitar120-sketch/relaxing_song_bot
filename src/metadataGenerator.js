@@ -9,8 +9,8 @@ async function generateMetadataWithAI(category, trackTitle) {
     return null;
   }
 
-  // Use a more stable model identifier
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  // Use Gemini 2.5 Flash - The most stable free model in 2026
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `Act as an expert YouTube growth hacker and SEO specialist for top relaxation and meditation channels. Generate a highly engaging, click-worthy YouTube video title, an immersive description with timestamps (0:00 Intro, 15:00 Deep Relaxation, 30:00 Peace & Calm, 45:00 Restful State), and 12 high-performing SEO tags for a 61-minute ${category} music video. Track title: "${trackTitle}". 
 Tone: Professional, calming, natural, and human-like (avoid robotic AI phrasing). 
